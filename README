@@ -1,0 +1,18 @@
+
+embeded redis storage engine for erlang
+
+
+
+install:
+
+ get redis
+
+ make redis 
+
+ modify rebar.config for compile
+
+
+TODO:
+
+ remove no use code from redis source
+

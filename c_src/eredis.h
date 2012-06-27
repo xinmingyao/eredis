@@ -6,7 +6,7 @@
 #include "redis.h"
 typedef struct _eredis_handle
 {
-  redisDb * db;
+  redisDb * db[10];
 } eredis_handle;
 
 // Prototypes

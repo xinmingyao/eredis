@@ -56,14 +56,14 @@ ERL_NIF_TERM eredis_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
   ErlNifBinary value;
   if(enif_get_resource(env,argv[0],eleveldb_db_RESOURCE,(void **)&handle) &&
      enif_inspect_binary(env,argv[1],&key) && enif_inspect_binary(env,argv[2],&value)){ 
-    redisDb* db=handle->db;
-    robj * k1 = createStringObject(( char*)key.data,key.size);
-    robj * v1 = createStringObject(( char*)value.data,value.size);     
+    redisDb* db=handle->db[0];
+    robj * k1 = createStringObject(( char*)key.data,key.size,1,1);
+    robj * v1 = createStringObject(( char*)value.data,value.size,1,1);     
     
     // robj * k1 = createStringObject("123",3);
     //robj * v1 = createStringObject("456",3);     
     
-    setKey(db,k1,v1);
+    dbReplace(db,k1,v1);
     return ATOM_OK;
     }
   return ATOM_ERROR;
@@ -76,9 +76,11 @@ ERL_NIF_TERM eredis_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
   ErlNifBinary key;
   if(enif_get_resource(env,argv[0],eleveldb_db_RESOURCE,(void **)&handle) &&
      enif_inspect_binary(env,argv[1],&key)){ 
-    redisDb* db=handle->db;
-    robj * k1 = createStringObject((char*)key.data,key.size);
-    robj * v1 = lookupKey(db,k1);
+    redisDb* db=handle->db[0];
+    robj * k1 = createStringObject((char*)key.data,key.size,1,1);
+    uint16_t  version =1 ;
+	
+    robj * v1 = lookupKeyWithVersion(db,k1,&version);
     if(v1==NULL){
       return ATOM_NOT_FOUND;
     }else{
@@ -99,8 +101,8 @@ ERL_NIF_TERM eredis_delete(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
   ErlNifBinary key;
   if(enif_get_resource(env,argv[0],eleveldb_db_RESOURCE,(void **)&handle) &&
      enif_inspect_binary(env,argv[1],&key)){ 
-    redisDb* db=handle->db;
-    robj * k1 = createStringObject((char*)key.data,key.size);
+    redisDb* db=handle->db[0];
+    robj * k1 = createStringObject((char*)key.data,key.size,1,1);
     int ret = dbDelete(db,k1);
     if(ret==0){
       return ATOM_ERROR_DB_DELETE;
@@ -126,15 +128,15 @@ ERL_NIF_TERM eredis_open(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
   
     extern dictType dbDictType;
     extern dictType keyptrDictType;
-    extern dictType keylistDictType;
-    extern dictType keylistDictType;
+    //extern dictType keylistDictType;
+    //extern dictType keylistDictType;
     db->dict = dictCreate(&dbDictType,NULL);
     db->expires =  dictCreate(&keyptrDictType,NULL);
-    db->blocking_keys = dictCreate(&keylistDictType,NULL);
-    db->watched_keys = dictCreate(&keylistDictType,NULL);
+   // db->blocking_keys = dictCreate(&keylistDictType,NULL);
+   // db->watched_keys = dictCreate(&keylistDictType,NULL);
     db->id = 1;
     memset(handle, '\0', sizeof(eredis_handle));
-    handle->db = db;
+    handle->db[0] = db;
     ERL_NIF_TERM result = enif_make_resource(env, handle);
     enif_release_resource(handle);
     return enif_make_tuple2(env, ATOM_OK, result);
@@ -198,7 +200,7 @@ static void eredis_resource_cleanup(ErlNifEnv* env, void* arg)
 {
     // Delete any dynamically allocated memory stored in eleveldb_db_handle
     eredis_handle* handle = (eredis_handle*)arg;
-     enif_release_resource(handle->db);
+     enif_release_resource(handle->db[0]);
     // delete handle->db;
 }
 

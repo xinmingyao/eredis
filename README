@@ -5,14 +5,15 @@ embeded redis storage engine for erlang
 
 install:
 
- get redis
+./rebar get-deps
 
- make redis 
+./rebar compile
 
- modify rebar.config for compile
+test
 
+./rebar ct
 
 TODO:
-
- remove no use code from redis source
+ implements all redis api in erlang nif
+ 
 
